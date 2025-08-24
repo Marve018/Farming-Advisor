@@ -4,7 +4,7 @@ from transformers import pipeline
 from langchain_community.document_loaders import DataFrameLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings # CHANGED
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.llms import HuggingFacePipeline
 
@@ -16,7 +16,8 @@ documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 texts = text_splitter.split_documents(documents)
 
-embeddings = HuggingFaceEmbeddings()
+# CHANGED: Specified model_name directly and used the new import
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 vectorstore = FAISS.from_documents(texts, embeddings)
 
 # --- 2. Initialize Models ---
@@ -30,15 +31,15 @@ llm = HuggingFacePipeline.from_model_id(
 qa_chain = ConversationalRetrievalChain.from_llm(llm, vectorstore.as_retriever())
 
 # Translation models
-en_to_ig_translator = pipeline("translation_en_to_ig", model="Helsinki-NLP/opus-mt-en-ig")
-ig_to_en_translator = pipeline("translation_ig_to_en", model="Helsinki-NLP/opus-mt-ig-en")
+en_to_ig_translator = pipeline("translation", model="Helsinki-NLP/opus-mt-en-ig") # CHANGED: Specified "translation" task
+ig_to_en_translator = pipeline("translation", model="Helsinki-NLP/opus-mt-ig-en") # CHANGED: Specified "translation" task
 
 chat_history = []
 
 def detect_language(text):
     # A simple heuristic for language detection
     # For a more robust solution, a dedicated language detection library can be used
-    if any('\u0128' in word or '\u1eca' in word for word in text.split()):
+    if any(igbo_char in text for igbo_char in "ịọụṅỊỌỤṄ"):
         return 'ig'
     return 'en'
 
